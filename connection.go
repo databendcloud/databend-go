@@ -51,7 +51,7 @@ func (dc *DatabendConn) exec(ctx context.Context, query string, args ...driver.V
 	respCh := make(chan QueryResponse)
 	errCh := make(chan error)
 	go func() {
-		err := dc.rest.QuerySync(ctx, query, args, respCh)
+		err := dc.rest.QuerySync(ctx, query, "", args, respCh)
 		errCh <- err
 	}()
 
@@ -128,7 +128,7 @@ func (dc *DatabendConn) prepare(query string) (*databendStmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	dc.commit = batch.CopyInto
+	dc.commit = batch.InsertIntoWithStage
 
 	stmt := &databendStmt{
 		dc:    dc,

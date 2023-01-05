@@ -72,5 +72,5 @@ func (stmt *databendStmt) commit(ctx context.Context) error {
 		fmt.Printf("upload stage failed %v", err)
 	}
 
-	return stmt.batch.CopyInto()
+	return stmt.batch.InsertIntoWithStage()
 }

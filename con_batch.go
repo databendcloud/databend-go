@@ -35,7 +35,6 @@ func (dc *DatabendConn) prepareBatch(ctx context.Context, query string) (ldriver
 			rColumns[i] = strings.TrimSpace(rColumns[i])
 		}
 	}
-	query = "INSERT INTO " + tableName
 	queryTableSchema := "DESCRIBE " + tableName
 
 	r, err := dc.rest.DoQuery(ctx, queryTableSchema, nil)
@@ -87,6 +86,46 @@ type httpBatch struct {
 	tableSchema string
 }
 
+func (b *httpBatch) InsertIntoWithStage() error {
+	defer func() {
+		err := os.RemoveAll(b.batchFile)
+		if err != nil {
+			b.conn.log("delete batch insert file failed: ", err)
+		}
+	}()
+	b.conn.log("upload to stage")
+	err := b.UploadToStage()
+	if err != nil {
+		return errors.Wrap(err, "upload to stage failed")
+	}
+
+	// insert into db.table from @~/xx.csv
+	stageFile := fmt.Sprintf("@~/%s", b.batchFile)
+	respCh := make(chan QueryResponse)
+	errCh := make(chan error)
+	go func() {
+		err := b.conn.rest.QuerySync(context.Background(), b.query, stageFile, nil, respCh)
+		errCh <- err
+	}()
+
+	for {
+		select {
+		case err := <-errCh:
+			if err != nil {
+				return err
+			} else {
+				return nil
+			}
+		case resp := <-respCh:
+			bt, err := json.Marshal(resp.Data)
+			if err != nil {
+				return err
+			}
+			_, _ = io.Copy(io.Discard, bytes.NewReader(bt))
+		}
+	}
+}
+
 func (b *httpBatch) CopyInto() error {
 	defer func() {
 		err := os.RemoveAll(b.batchFile)
@@ -104,7 +143,7 @@ func (b *httpBatch) CopyInto() error {
 	respCh := make(chan QueryResponse)
 	errCh := make(chan error)
 	go func() {
-		err := b.conn.rest.QuerySync(context.Background(), newCopyInto(b.tableSchema, b.batchFile), nil, respCh)
+		err := b.conn.rest.QuerySync(context.Background(), newCopyInto(b.tableSchema, b.batchFile), "", nil, respCh)
 		errCh <- err
 	}()
 

@@ -59,6 +59,20 @@ type QueryRequest struct {
 	Pagination `json:"pagination"`
 }
 
+type QueryStageAttachRequest struct {
+	SQL             string `json:"sql"`
+	Pagination      `json:"pagination"`
+	StageAttachment `json:"stage_attachment"`
+}
+
 type Pagination struct {
 	WaitTime int32 `json:"wait_time_secs" default:"60"`
+}
+
+type StageAttachment struct {
+	Location          string `json:"location"`
+	FileFormatOptions struct {
+	} `json:"file_format_options"`
+	CopyOptions struct {
+	} `json:"copy_options"`
 }

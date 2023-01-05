@@ -117,7 +117,7 @@ func (s *DatabendTestSuite) TestBatchInsert() {
 	scope, err := s.db.Begin()
 	r.Nil(err)
 
-	batch, err := scope.Prepare(fmt.Sprintf("INSERT INTO %s", s.table))
+	batch, err := scope.Prepare(fmt.Sprintf("INSERT INTO %s VALUES", s.table))
 	r.Nil(err)
 
 	for i := 0; i < 10; i++ {

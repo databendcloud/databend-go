@@ -6,4 +6,5 @@ type Batch interface {
 	AppendToFile(v []driver.Value) error
 	UploadToStage() error
 	CopyInto() error
+	InsertIntoWithStage() error
 }
